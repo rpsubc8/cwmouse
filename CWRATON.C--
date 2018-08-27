@@ -1,0 +1,1371 @@
+//
+//Revisar POP de PulseIN que hace Push
+//
+
+?use8088
+?codesize
+?stack 8192
+//?resize  TRUE
+//?use8086
+//*******************************
+//* CWRATON version BIG VERSION *
+//*******************************
+?include "WRITE.H--"
+?include "mouse.h--"
+?include "sound.h--"
+?include "video.h--"
+?include "STRING.H--"
+//?include "PORTS.H--"
+//?include "dos.h--"
+
+?define TIMERINT 0x8
+//?define TIMERINT 0x70
+word oldtimerhandle[2]={};    // address holder for old INT 0x1C handle 
+?define HIGH 1
+?define LOW 0
+?define max_buffer 255;
+?define max_cad_rtty 32;
+?define max_teclado 32;
+?define row_tx 23;
+
+//Diccionario comprimido
+//Respetar el formato ",PALABRA=SMS,PALABRA2=SMS2";
+unsigned char dic_a[]=",ABRAZOS=XXXX,ACA=AK,ACABO=ACBO,ADEMAS=ADMS,ADIOS=AZ,AHORA=AOA,ALGO=ALG,ALGUNAS=SOME,ALGUNOS=ALGNS,ANOS=ANS,ANTE=ANT,ANTES=ANTS,AQUI=AKI,AUNQUE=AIQ,AYER=AER";
+unsigned char dic_b[]=",BARBACOA=BBQ,BAJA=BJ,BESO=X,BESOS=BSS,BESITOS=B7S,BIEN=BN,BUENAS=GOOD,BUENA=BA,BUENO=BNO";
+unsigned char dic_c[]=",CABRON=KBRON,CADA=CAD,CALLATE=KYAT,CARGADOR=CRG,CASA=QTH,CASO=CAS,CERO=O,CHAT=XAT,CINCO=S,CIUDAD=CITY,CLASE=KLS,COBERTURA=CBT,COLEGA=CLGA,COMO=AS,COMPUTADORA=PC,CON=CN,CONTRA=CONTR,COSAS=COSS,CUAL=CUA,CUANDO=QNDO,CUANTO=HOW,CUATRO=4,CUELGA=CLG,CUENTA=BILL,CUENTAME=KNTM";
+unsigned char dic_d[]=",DE=D,DEBE=DB,DECIR=DCI,DEDOS=DZ,DEL=DL,DEN=DN,DENTRO=DNTR,DESDE=DSD,DESPUES=DSPS,DICE=DIC,DIFICIL=DFCL,DIGE=DIG,DIGA=DGA,DIGO=DGO,DIJO=DIJ,DISCO=DSK,DONDE=DND,DORMIDA=DRMDA,DOS=Z,DURANTE=DURNT";
+unsigned char dic_e[]=",EL=L,ELEFANTE=LFNT,ELLA=ELA,ELLO=EYO,ELLOS=EYS,EMAIL=EM,EMBARGO=MBRG,ENFADADO=GRR,ENTONCES=SO,ENTRE=NTR,ERES=ERS,ES=S,ESPANA=SPAN,ESPERO=SPRO,ESTA=TA,ESTADO=TADO,ESTAN=TAN,ESTAS=STS,ESTE=ST,ESTOS=ETOS,ESTOY=TOY,EXAMEN=XAM";
+unsigned char dic_f[]=",FACEBOOK=FB,FELIZ=XD,FIN=FN,FINDE=FIND,FORMA=FRMA,FOTO=FT,FRENTE=FNT,FUERON=FERN";
+unsigned char dic_g[]=",GANAS=GNS,GENERAL=GNRL,GENIAL=GNL,GOBIERNO=GOB,GRACIAS=ASIAS,GRAN=GRN,GRANDE=GRND,GRUPO=GRUP,GUAPA=WPA";
+unsigned char dic_h[]=",HABIA=ABIA,HACE=ACE,HACER=ACR,HACES=ACS,HACIA=ACIA,HAN=AN,HASTA=H,HECHO=EXO,HERMANO=RMNO,HIJOPUTA=HP,HISTORIA=ISTO,HOLA=HI,HOMBRE=OMBR,HORA=HR,HOY=OY";
+unsigned char dic_i[]=",INSTITUTO=IES,INSTI=NSTI,INTERNET=NET";
+unsigned char dic_j[]=",JODETE=JDT";
+unsigned char dic_k[]=",KILOMETRO=KM,KILOMETROS=KM";
+unsigned char dic_l[]=",LE=L,LOS=LS,LUEGO=LGO,LUGAR=LG";
+unsigned char dic_m[]=",MADRID=MDRD,MANANA=MNN,MAMA=MA,MANDA=MNDA,MANDE=MAND,MANDO=MNDO,MANERA=MNR,MAYOR=MAOR,ME=M,MEDIO=MDIO,MEJOR=MJR,MENOS=MNS,MENSAJE=SMS,METETE=MTT,MIERDA=KK,MILLONES=MIYONS,MISMA=MMA,MISMO=MMO,MOMENTO=MMNT,MOTO=MTO,MOVIL=MVL,MUCHO=MX,MUCHOS=MXX,MUJER=MUJR,MUNDO=MNDO,UY=MU";
+unsigned char dic_n[]=",NACIONAL=NCIONL,NADA=ND,NEVAR=NVR,NEVARA=NVRA,NEVERA=NVR,NEVO=NVO,NIEVA=NIVA,NIEVE=NVE,NO=N,NOCHE=NXE,NOS=NS,NOSOTROS=NST,NUESTRA=NUET,NUEVA=NEVV,NUEVE=9,NUEVO=NUE,NUNCA=NNCA";
+unsigned char dic_o[]=",OCHO=B,OPERATIVO=OPRATV,ORDENADOR=PC,OTRAS=OTAS,OTRO=OTR,OTROS=OTRS";
+unsigned char dic_p[]=",PAIS=PAI,PAPA=PA,PARA=XA,PARTE=PART,PARTIDA=PRTDA,PARTIDO=MATCH,PARTIDOS=PRTDS,PASADO=PAST,PASO=PSO,PEDO=PDO,PEQUENO=PK,PERDON=XDON,PERO=XO,PERSONA=PRSON,PERSONAS=PRSONS,PIERDETE=PDT,PISCINA=POOL,PLOMO=PB,POCO=PCO,PODER=PDR,POLITICA=PLITC,POLITICO=PLTICO,POR=X,PORFA=XFA,PORQUE=PK,PRESIDENTE=PESIDNT,PRIMER=PRMR,PRINCIPIO=PPIO,PROFESOR=PRF,PUEDE=PUED,PUEDEN=PUDN,PUES=PUE,PUDE=PUD,PUNTO=PNT";
+unsigned char dic_q[]=",QUE=Q,QUEDADA=QDDA,QUEDAMOS=KDMS,QUIEN=QIN,QUIERES=QRS";
+unsigned char dic_r[]=",REPITELO=RPTLO,RESPONDE=R,RISA=RSA";
+unsigned char dic_s[]=",SABADO=SBDO,SABES=SBS,SALIMOS=SLMOS,SALUDOS=SALUZ,SE=S,SEGUN=SGU,SEIS=6,SEMANA=SMN,SER=ER,SIDO=SDO,SIEMPRE=SEMPR,SIETE=7,SISTEMA=SYS,SOBRE=SBR,SUERTE=SRT";
+unsigned char dic_t[]=",TAL=TL,TAMBIEN=TB,TAMPOCO=TP,TANTO=TANT,TE=T,TEN=TN,TENER=TNR,TENIA=HAD,TIEMPO=TIME,TIENE=TIEN,TIENEN=TENN,TIPO=TYP,TODAS=ALL,TODO=TD,TODOS=TODS,TONTO=TNTO,TRABAJO=JOB,TRAS=TRA,TRES=3,TWEET=TW";
+unsigned char dic_u[]=",UNO=I,UNOS=UNS,UTENSILIO=UTNSLO";
+unsigned char dic_v[]=",VACACIONES=VAC,VALE=OK,VECES=VCS,VEMOS=VMS,VEZ=VZ,VIENES=VNS,VIERNES=VRNS,VOSOTROS=VOS";
+unsigned char dic_w[]=",GUAY=WAY";
+unsigned char dic_x[]=",XANA=XNA,XANTINA=XNTINA";
+unsigned char dic_y[]=",YATE=YT";
+unsigned char dic_z[]=",ZONA=ZN,ZONAS=ZNS";
+
+//Diccionario alreves para decodificar
+unsigned char dec_a[]=",AK=ACA,ACBO=ACABO,ADMS=ADEMAS,AS=COMO,AZ=ADIOS,AOA=AHORA,ALG=ALGO,ALGNS=ALGUNOS,ANS=ANOS,ANT=ANTE,ANTS=ANTES,AKI=AQUI,AIQ=AUNQUE,AER=AYER,ASIAS=GRACIAS,ACE=HACE,ACR=HACER,ACS=HACES,ACIA=HACIA,AN=HAN";
+unsigned char dec_b[]=",BILL=CUENTA,BBQ=BARBACOA,BJ=BAJA,BSS=BESOS,B7S=BESITOS,BN=BIEN,BA=BUENA,BNO=BUENO";
+unsigned char dec_c[]=",CAD=CADA,CRG=CARGADOR,CAS=CASO,CITY=CIUDAD,CBT=COBERTURA,CLGA=COLEGA,CN=CON,CONTR=CONTRA,COSS=COSAS,CUA=CUAL,CLG=CUELGA";
+unsigned char dec_d[]=",D=DE,DB=DEBE,DCI=DECIR,DZ=DEDOS,DL=DEL,DN=DEN,DNTR=DENTRO,DSD=DESDE,DSPS=DESPUES,DIC=DICE,DFCL=DIFICIL,DIG=DIGE,DGA=DIGA,DGO=DIGO,DIJ=DIJO,DSK=DISCO,DND=DONDE,DRMDA=DORMIDA,DURNT=DURANTE";
+unsigned char dec_e[]=",EL=L,ELA=ELLA,EYO=ELLO,EYS=ELLOS,EM=EMAIL,ERS=ERES,ETOS=ESTOS,EXO=HECHO";
+unsigned char dec_f[]=",FB=FACEBOOK,FN=FIN,FIND=FINDE,FRMA=FORMA,FT=FOTO,FNT=FRENTE,FERN=FUERON";
+unsigned char dec_g[]=",GOOD=BUENAS,GRR=ENFADADO,GNS=GANAS,GNRL=GENERAL,GNL=GENIAL,GOB=GOBIERNO,GRN=GRAN,GRND=GRANDE,GRUP=GRUPO";
+unsigned char dec_h[]=",HOW=CUANTO,ABIA=HABIA,H=HASTA,HP=HIJOPUTA,HI=HOLA,HR=HORA";
+unsigned char dec_i[]=",ISTO=HISTORIA";
+unsigned char dec_j[]=",JDT=JODETE";
+unsigned char dec_k[]=",KBRON=CABRON,KYAT=CALLATE,KNTM=CUENTAME,KLS=CLASE,KM=KILOMETRO";
+unsigned char dec_l[]=",LFNT=ELEFANTE";
+unsigned char dec_m[]=",MBRG=EMBARGO";
+unsigned char dec_n[]=",NTR=ENTRE";
+unsigned char dec_o[]=",O=CERO,OMBR=HOMBRE,OY=HOY";
+unsigned char dec_p[]=",PC=COMPUTADORA";
+unsigned char dec_q[]=",QTH=CASA,QNDO=CUANDO";
+unsigned char dec_r[]=",RMNO=HERMANO";
+unsigned char dec_s[]=",S=CINCO,SOME=ALGUNAS,SO=ENTONCES,S=ES,SPRO=ESPERO,SPAN=ESPANA,STS=ESTAS,ST=ESTE";
+unsigned char dec_t[]=",TA=ESTA,TADO=ESTADO,TAN=ESTAN,TOY=ESTOY";
+unsigned char dec_x[]=",X=BESO,XAT=CHAT,XXXX=ABRAZOS,XAM=EXAMEN,XD=FELIZ";
+unsigned char dec_w[]=",WPA=GUAPA";
+unsigned char dec_z[]=",Z=DOS";
+unsigned char dec_cuatro[]=",4=CUATRO";
+
+unsigned char aux_palabra[20]="00000000000000000000"; //Para las palabras a buscar
+unsigned char sms_palabra[20]="00000000000000000000"; //Para reducida
+//204 cualquier
+
+//word estado;
+//word contador;
+
+//word tiempo_a;
+//word tiempo_d;
+//word tiempo;
+
+
+word tiempo_interno;
+//word t_antes;
+//word t_despues;
+//word counter;
+//byte d_port;
+
+//Trama
+//Pos 0: A
+//Pos 1: tamanio
+//Pos 2: CRC 
+//Pos 3..n: TEXTO
+//Pos n: A
+//En la posicion 1 del buffer esta el tamanio del mismo
+//En la posicion 3 en adelante el texto
+byte buffer_send[max_buffer]; //Buffer enviar y recibir datos al aire
+byte buffer_receive[max_buffer]; //Buffer recibe datos del aire
+byte buffer_teclado[max_teclado]; //Buffer para teclado
+
+byte poll_video_ruido=FALSE; //Se esta escuchando audio
+byte poll_video_byte=FALSE;  //Se ha recibido un byte
+byte poll_video_rx= FALSE;   //Si esta en TX o RX
+byte poll_envia= FALSE;      //Para interbloqueo de enviar datos RTTY
+byte poll_recibe= FALSE;     //Para interbloqueo de recibir datos RTTY
+byte poll_recibe_trama=FALSE; //Cuando se esta detectando una trama
+byte col_tx=1;
+byte row_rx=1;      //La fila a escribir para recibir texto
+byte col_rx=1;
+
+
+word aux_mili_pulso=60; //Le da un margen de error para detectar pulsos de 50 milisegundos
+
+///////////////////////////////////////////
+/*void OcultaCursor(){
+ //IF (AL==TRUE){ CX=2607h;}
+ //ELSE { CX=0607h;} 
+ AH=01h;
+ $INT 10h
+}*/
+
+///////////////////////////////
+void DiccionarioPalabra(word palabra,word destino){
+ //Aplica a una palabra el diccionario
+ //El caracter #para la direccion de memoria 
+ word cont=0; 
+ word longitud_tag=0;
+ byte encontrado=0;
+ byte fin_cad_dic=0;
+ byte fin_bucle=0;
+ word pos_ini=0;
+ word pos_fin=0;
+ word pos_ini_sms=0;
+ word pos_fin_sms=0;
+ word longitud=0;
+ word longitud_dic=0;
+ word aux_dic=dic_b; 
+ word tope=0;
+ word tope_dic=0; 
+ //word cont=0;
+ //WRITESTR(palabra);
+ //WRITELN();
+ longitud=STRLEN(palabra);
+ //WRITEINT(longitud);
+ IF (longitud<=0){     
+  destino[0]=0;
+  return;
+ }
+ //Seleccionamos letra de indice diccionario 
+ SI=palabra;
+ AL=DSBYTE[SI];  
+ IF (AL=='A') aux_dic=#dic_a;
+ else IF (AL=='B') aux_dic=#dic_b;
+ else IF (AL=='C') aux_dic=#dic_c;
+ else IF (AL=='D') aux_dic=#dic_d;
+ else IF (AL=='E') aux_dic=#dic_e;
+ else IF (AL=='F') aux_dic=#dic_f;
+ else IF (AL=='G') aux_dic=#dic_g;
+ else IF (AL=='H') aux_dic=#dic_h;
+ else IF (AL=='I') aux_dic=#dic_i;
+ else IF (AL=='J') aux_dic=#dic_j;
+ else IF (AL=='K') aux_dic=#dic_k;
+ else IF (AL=='L') aux_dic=#dic_l;
+ else IF (AL=='M') aux_dic=#dic_m;
+ else IF (AL=='N') aux_dic=#dic_n;
+ else IF (AL=='O') aux_dic=#dic_o;
+ else IF (AL=='P') aux_dic=#dic_p;
+ else IF (AL=='Q') aux_dic=#dic_q;
+ ELSE IF (AL=='R') aux_dic=#dic_r;
+ ELSE IF (AL=='S') aux_dic=#dic_s;
+ ELSE IF (AL=='T') aux_dic=#dic_t;
+ ELSE IF (AL=='U') aux_dic=#dic_u;
+ ELSE IF (AL=='V') aux_dic=#dic_v;
+ ELSE IF (AL=='X') aux_dic=#dic_x;
+ ELSE IF (AL=='Y') aux_dic=#dic_y;
+ ELSE IF (AL=='Z') aux_dic=#dic_z;
+ 
+ WRITESTR(aux_dic);
+ //Buscamos la coincidencia en diccionario
+ 
+ //DI=palabra;
+ //tope=DI+longitud;
+ //Buscar = PAra la palabra del diccionario
+ 
+ longitud_dic= STRLEN(aux_dic);
+ longitud_tag=0;
+ pos_ini=0;
+ pos_fin=0;
+ SI=aux_dic;
+ tope_dic=SI+longitud_dic;  
+ do{
+  //WRITE('P');WRITEINT(pos_fin);WRITE(' ');
+  //Buscamos comienzo palabra la ,  
+  SI=aux_dic+pos_fin;
+  do{
+   AL=DSBYTE[SI];
+   IF (AL==0){fin_cad_dic=1; fin_bucle=1;}//Se encontro el fin del diccionario
+   SI=SI+1;
+  }while(AL!=',');
+  IF (fin_cad_dic==1){break;} //Se llego al fin de la cadena de diccionario y salimos
+  pos_ini=SI-aux_dic;
+  //Buscamos comienzo = que es fin de tag
+  SI=aux_dic+pos_ini;
+  do{AL=DSBYTE[SI]; SI=SI+1;}while(AL!='=');
+  pos_fin=SI-aux_dic;
+ 
+  //WRITEINT(pos_ini); WRITE(' '); WRITEINT(pos_fin);WRITE(' ');
+ 
+  longitud_tag=pos_fin-pos_ini-1; //Tamanio del tag
+  //WRITEINT(longitud_tag);WRITE(' ');
+  IF (longitud_tag==longitud){ //Son palabras del mismo tamanio
+   //Copiamos el tag que encontramos
+   DI=#aux_palabra; SI=aux_dic+pos_ini; cont=0;
+   do{ AL=DSBYTE[SI]; DSBYTE[DI]=AL; DI=DI+1; SI=SI+1; cont=cont+1;}while(cont<longitud_tag);
+   DSBYTE[DI]=0; //El fin de cadena
+   //WRITESTR(#aux_palabra); WRITE(' ');WRITESTR(palabra);
+   STRCMP(palabra,#aux_palabra);
+   IF (AL==0) {encontrado=1; fin_bucle=1;} //La palabra coincide
+   ELSE {encontrado=0;}  
+  }     
+ }while (fin_bucle==0);
+ //IF (fin_cad_dic==1){ WRITESTR(" FINDIC ");} 
+ //ELSE{WRITESTR(" NOFINDIC ");}
+ 
+ if (encontrado==1){//Se encontro la palabra, y devuelve la reducida
+  fin_bucle=0;  
+  //WRITE('E');WRITEINT(pos_fin);WRITE(' ');  
+  cont=pos_fin;
+  pos_ini_sms=pos_fin; //Donde empieza el =
+  pos_fin_sms=pos_ini_sms;
+  SI= aux_dic+pos_ini_sms;
+  do{      
+   AL=DSBYTE[SI];
+   //WRITEINT(AL);WRITE(' ');
+   IF (AL==','){
+    cont=cont+1;
+    break;
+   }   
+   cont=cont+1;
+   SI=SI+1;
+  }while(AL!=0);
+  pos_fin_sms=cont-1;
+  cont= pos_fin_sms-pos_ini_sms;
+  DI=destino+cont;  
+  DSBYTE[DI]=0;//Fin de la palabra reducida
+  //sms_palabra[cont]=0; //Fin de la palabra reducida
+  //WRITEINT(pos_ini_sms);WRITE(' ');
+  //WRITEINT(pos_fin_sms);WRITE(' ');
+  //WRITEINT(cont);WRITE(' ');
+    
+  //AL= dic_b[27];
+  //WRITE();
+    
+  SI=aux_dic+pos_ini_sms;
+  //DI=#sms_palabra;
+  DI=destino;
+  loop(cont){
+   AL=DSBYTE[SI];   
+   DSBYTE[DI]=AL;
+   //WRITE(AL);   
+   SI=SI+1;
+   DI=DI+1;
+  }
+  //sms_palabra[3]=0; //Fin de la cadena de sms
+  //WRITE('K');WRITESTR(#sms_palabra);WRITE('K');  
+ }
+  
+
+}
+
+void MuestraCursorTeclado(){
+ GOTOXY(col_tx,row_tx);
+ WRITE(177);
+}
+
+///////////////////////////////////////////
+void SalirPrograma(){
+ //Salida dle Programa
+ NOSOUND(); //Por si acaso, para dejar de sonar
+ RestoreTimer();
+ //AL=FALSE; OcultaCursor(); 
+ CX=0607h; AH=01h; $INT 10h
+ //OcultaCursor();
+ EXIT();
+}
+
+///////////////////////////////////////////
+/*void PreparaPantalla(){
+ GOTOXY(0,20); CX=80; loop(CX){ WRITE(220); }
+}*/
+
+///////////////////////////////////////////
+/*void PrecalculaVideo(){
+ 
+}*/
+
+///////////////////////////////////////////
+/*void EscribeVideo(byte x,byte y,byte dato){
+ //Escribe en memoria de video directamente
+ ES=0xB800;
+ AX=y*160+x*2;
+ DI=AX;
+ ESBYTE[DI]= dato;
+}*/
+
+///////////////////////////////////////////
+void DibujaPulso(byte value,word duracion){ 
+ word y;
+ word x; 
+ word i,j,tope;  
+ $PUSH AX
+ $PUSH ES
+ $PUSH DI
+ $PUSH CX 
+ $PUSH BX
+ ES=0xB800;
+ //Scroll a la izquierda
+ //j=16;
+ IF (duracion>aux_mili_pulso) {tope=78;} //78 caracters o 79 de scroll
+ ELSE{ tope=79;};  
+ //SCROLL 2 o 1 caracter
+ i=0;
+ do{
+  //AX=j*160;
+  AX=3200; //Linea 20*160
+  BX=i<<1; 
+  DI=AX+BX;
+  IF (duracion>aux_mili_pulso){ SI=DI+4; }
+  ELSE{ SI=DI+2; }
+  ESBYTE[DI]=ESBYTE[SI];   
+  i=i+1;
+ }while(i<tope); 
+ 
+ 
+ //y=16*160; 
+ y=3200; //20*160
+ IF (duracion>aux_mili_pulso){x=78<<1;}
+ ELSE{ x=79<<1;}
+ AX=y+x;
+ DI=AX;   
+ IF (value==HIGH){ESBYTE[DI]= 219;}
+ ELSE {ESBYTE[DI]= 95;}
+ IF (duracion>aux_mili_pulso){
+  IF (value==HIGH){ESBYTE[DI+2]= 219;}
+  ELSE{ESBYTE[DI+2]= 95;} 
+ }
+ 
+ $POP BX
+ $POP CX
+ $POP DI
+ $POP ES
+ $POP AX
+}
+
+///////////////////////////////////////////
+/*void EsperaVideo(byte cont){
+ //Espera cont veces vsync vertical 60 hz texto 
+ //1000  ms ---- 60
+ //  50  ms ---- 3
+ //33,3  ms ---- 2
+ //16,66 ms ---- 1
+ byte aux_cont=0; 
+ do{
+  WAITVSYNC();
+  aux_cont++;
+ }while (aux_cont<cont);
+}*/
+
+///////////////////////////////////////////
+//void PlayBit(byte tipo,byte velocidad){
+void PlayBit(byte tipo){
+ //Reproduce bit alto o bajo
+ //byte cont=0;
+ byte duracion=5; //Para 50 milisegundos
+ byte cont2=0;
+
+ $PUSH AX
+ $PUSH BX //Debe usarla el pool
+ $PUSH CX 
+ IF (tipo==1){
+  duracion=10;
+ }
+ AX=700; SOUND();
+   
+ do
+ {  
+  CX=duracion;
+  loop(CX){
+   Delay(10); 
+   rutina_poll_interface();
+  }
+  NOSOUND();
+  duracion=5; //50 milisegundos a la siguiente silencio en bucle
+  cont2++;
+  //cont=0;
+ }while(cont2<2);
+ $POP CX
+ $POP BX
+ $POP AX
+}
+
+
+/////////////////////////////////////////////
+//void EnviaRTTY5Aire(byte mili_pulso){
+void EnviaRTTY5Aire(){
+ //Envia texto convertido a 5 bits RTTY 
+ byte num_bytes=0;
+ byte aux;
+ word i;
+ word cont=0; 
+ word tope=0; 
+ 
+ $PUSH AX
+ $PUSH BX
+ $PUSH CX
+ $PUSH DX
+ 
+ //buffer_send[0]='A'; //Comienzo trama
+ //buffer_send[1]=11;  //tamanio del buffer,lo enviamos en baudot
+ //buffer_send[2]= 0;  //CRC
+ //buffer_send[3]='P';
+ //buffer_send[4]='r';
+ //buffer_send[5]='u';
+ //buffer_send[6]='e';
+ //buffer_send[7]='b';
+ //buffer_send[8]='a';
+ //buffer_send[9]=' ';
+ //buffer_send[10]='r';
+ //buffer_send[11]='t';
+ //buffer_send[12]='t';
+ //buffer_send[13]='y';
+ //buffer_send[14]='A';
+
+ //Borro datos de pantalla
+ num_bytes= col_tx-1; 
+ IF (num_bytes==0){
+  //$POP DX
+  //$POP CX
+  //$POP BX
+  //$POP AX
+  $JMP SALIRENVIA
+  //return;  //Si la cadena es de 0 caracteres no se envia
+ }
+ //buffer_send[1]=num_bytes;  //tamanio del buffer,lo enviamos en baudot
+ GOTOXY(col_rx,row_rx);
+ WRITE(254); WRITE(' ');
+ /*for (i=0;i<num_bytes;i++){
+  WRITE(buffer_teclado[i]);
+  //aux_crc= aux_crc + buffer_teclado[i];
+  buffer_send[2]=buffer_send[2]+ buffer_teclado[i]; //El CRC
+ }//2135 */
+ CX=0;
+ DL=0;
+ DH=num_bytes;
+ do{
+  AL=buffer_teclado[CX];
+  DL=DL+AL;
+  WRITE();
+  //aux_crc= aux_crc + buffer_teclado[i];
+  //buffer_send[2]=buffer_send[2]+AL; //El CRC        
+  CX=CX+1;
+ }while(CL<DH);
+ buffer_send[2]=DL;
+ 
+ GOTOXY(1,row_tx);
+ CX=34; //Borro el texto escrito
+ loop(CX){
+  WRITE(' ');  
+ }
+ 
+ IF (row_rx>=20){
+  //AL = lines to scroll (0 = clear, CH, CL, DH, DL are used),
+  //BH = Background Color and Foreground color. BH = 43h, means that background color is red and foreground color is cyan. Refer the BIOS color attributes
+  //CH = Upper row number, 
+  //CL = Left column number, 
+  //DH = Lower row number, 
+  //DL = Right column number
+  AH=6;
+  AL=1;
+  BH=07H;
+  CX=256;
+  DX=5199; //20*256+79;
+  $INT 10H
+  row_rx=20;
+ }
+ ELSE{
+  row_rx++;
+ } 
+ col_tx=1;
+ 
+ IF (num_bytes>=max_cad_rtty) {
+  num_bytes=max_cad_rtty-1;
+ } 
+ //GOTOXY(10,10);WRITEINT(num_bytes);
+ /*cont=0;
+ do{
+  offset=cont+3;
+  //GOTOXY(10,11);WRITEINT(offset);
+  buffer_send[offset]= buffer_teclado[cont];
+  cont++;
+ }  
+ while(cont<num_bytes); *///2118
+ CX=0;
+ do{  
+  buffer_send[CX+3]= buffer_teclado[CX];
+  CX=CX+1;
+ }
+ while(CX<num_bytes); 
+ 
+ //cont=num_bytes+3;
+ //buffer_send[cont]='A'; //Fin trama
+ //buffer_send[CX+3]='A'; //Fin trama 
+ 
+ AL='A';
+ buffer_send[0]=AL; //Comienzo trama
+ buffer_send[CX+3]=AL; //Fin trama  
+ buffer_send[1]=num_bytes;  //tamanio del buffer,lo enviamos en baudot
+ 
+ /*AL='A';
+ buffer_send[0]=AL;
+ buffer_send[CX+3]=AL;*/
+ 
+ //tope=buffer_send[1]+4; 
+ //tope=num_bytes+4;
+ tope=CX+4;
+ //WRITESTR("Tope ");WRITEINT(tope);
+ //WRITEINT(tope);
+ //Comienzo de trama 5 pulsos 0
+ //for (i=0;i<5;i++){ PlayBit(0,mili_pulso);}
+ //Delay(mili_pulso<<1);
+ //Envio los datos en formato BAUDOT
+ 
+ //Activo PTT
+ /*cont=0;
+ do{
+  PlayBit(1);  
+  cont++;
+ }while(cont<5); *///2064
+ CX=5;
+ loop(CX){ PlayBit(1);};
+ 
+ /*cont=0;
+ do{//Espero 250 milisegundos
+  Delay(10); 
+  rutina_poll_interface(); 
+  cont++;
+ }while(cont<25); //250 milisegundos *///2055
+ 
+ CX=25;
+ loop(CX){//Espero 250 milisegundos
+  Delay(10); 
+  rutina_poll_interface();   
+ }
+ 
+ cont=0; //Envio tambien el tamanio de la cadena o buffer
+ do{ //2088
+  //aux= buffer_send[cont];  
+  AL= buffer_send[cont];  
+  //Letras A .. Z   
+  IF (cont<1) || (cont>2){
+   IF (AL>64) && (AL<91){ AL-=65;}
+   ELSE{
+    IF (AL>96) && (AL<123){ AL-= 97; }
+    ELSE{AL=31; } //Espacio Blanco
+   }
+  }  
+  
+  aux=AL; //El for usa AL o algo raro
+  /*for (i=1;i<=16;i<<=1){
+   AH= aux;   
+   AH= AH & i; //Bit 1  
+   //IF (AX==i) PlayBit(1,mili_pulso);
+   //ELSE PlayBit(0,mili_pulso);
+   IF (AH==i) PlayBit(1);
+   ELSE PlayBit(0);   
+   //rutina_poll_interface();
+  }//2067*/
+  /*i=1;
+  do{  
+   AH= AL;
+   AH= AH & i; //Bit 1  
+   //IF (AX==i) PlayBit(1,mili_pulso);
+   //ELSE PlayBit(0,mili_pulso);
+   IF (AH==i) PlayBit(1);
+   ELSE PlayBit(0);   
+   //rutina_poll_interface();
+   i<<=1;
+  }while(i<=16);//2037*/  
+  BL=1;
+  do{
+   //AH= aux;
+   AH= aux;
+   AH= AH & BL; //Bit 1  
+   //IF (AX==i) PlayBit(1,mili_pulso);
+   //ELSE PlayBit(0,mili_pulso);
+   IF (AH==BL) PlayBit(1);
+   ELSE PlayBit(0);   
+   //rutina_poll_interface();
+   BL<<=1;
+  }while(BL<=16);
+  cont++;
+ }while(cont<tope);
+ //Delay(mili_pulso<<1);
+ //for (i=0;i<5;i++){ PlayBit(0,mili_pulso);}
+ //Delay(mili_pulso<<1); 
+ /*cont=0;
+ do{//Espero 500 milisegundos para fin transmision y evitar rebotes fantasmas 
+  Delay(10); 
+  rutina_poll_interface(); 
+  cont++;
+ }while(cont<50); //500 milisegundos*///2046
+ CX=50;
+ loop(CX){//Espero 500 milisegundos para fin transmision y evitar rebotes fantasmas 
+  Delay(10); 
+  rutina_poll_interface();  
+ } 
+SALIRENVIA:
+ $POP DX
+ $POP CX
+ $POP BX
+ $POP AX
+}
+
+/////////////////////////////////////////////
+/*void EnviaDatoAire(byte velocidad){
+ //Envia un buffer al Aire
+ unsigned char buffer[10]; 
+ word i;
+ word cont=0; 
+ unsigned char aux; 
+ buffer[0]='E'; //0x45 01000101b 69
+ buffer[1]='s'; //0x73 01110011b 115
+ buffer[2]='t'; //0x74 116
+ buffer[3]='o'; //0x6F 111
+ buffer[4]=' ';
+ buffer[5]='e';
+ buffer[6]='s';
+ buffer[7]=' ';
+ buffer[8]='u';
+ buffer[9]='n';  
+ //EsperaVideo(velocidad);
+ cont=0;
+ do{   
+  aux= buffer[cont];  
+  for (i=1;i<=128;i*=2){   
+   AX= aux;
+   AX= AX & i; //Bit 1  
+   if (AX==i) PlayBit(1,velocidad);
+   else PlayBit(0,velocidad);
+  }
+  cont++;
+ }while(cont<10);  
+ NOSOUND();
+}*/
+
+/////////////////////////////////////////////
+/*void RecibeDatoAire(byte velocidad){
+ word cont_video=0;
+ word tiempo_0_a=0;
+ word tiempo_0_d=0;
+ word tiempo_0=0;
+ word tiempo_1_a=0;
+ word tiempo_1_d=0;
+ word tiempo_1=0;
+ byte primer_1=0;
+ byte bufferBit[8]; //Los 8 bits de un byte
+ byte dato_byte=0;    //El dato realmente e 8 bits
+ byte press_m=0;
+ byte despla; 
+ byte i;
+ word j;
+ word cont_8=0; //contador de 1 byte
+ word cont_repeat0=0; //numero de veces que no se clickea que es 0
+ int aux; 
+ //int auxbyte; 
+ press_m=0; //Partimos que no se ha pulsado el boton central   
+ do{
+  //WAITVSYNC(); //60 Hz
+  //cont_video++; 
+  cont_video= tiempo_interno;
+  GETMOUSEPRESS();  
+  estado= AX;
+  if (estado&4==4){
+   //Click boton central posible 1
+   cont_repeat0=0;
+   if (press_m==0){
+    //Flanco ascendente un 1 logico fijo. Pasamos de no click a click 0 a 1		
+	tiempo_0_a= cont_video;	
+    press_m=1;
+	tiempo_1_d= cont_video;	
+	tiempo_1= tiempo_1_d-tiempo_1_a;
+	WRITESTR("D");WRITEWORD(tiempo_1);//WRITESTR("|");	
+	WRITESTR("1|");	
+	if (tiempo_1>=0){
+	 aux= tiempo_1;
+     aux= aux/velocidad;	 
+	 WRITESTR("0L");WRITEINT(aux);WRITESTR("|");
+	 if(primer_1==0){
+	  primer_1=1;
+	 }
+	 else{
+      for (i=0;i<aux;i++){
+	   WRITESTR("0");
+	   //bufferBit[cont_8]=0; //Metemos el bit que es 0
+	   cont_8++;
+	   if (cont_8>=8) {
+	    //Metemos los bits en 1 byte
+		for (j=0;j<8;j++){ WRITEINT(bufferBit[j]);}
+        //WRITEHEX(auxbyte);
+        WRITESTR("b");					    
+		cont_8=0;
+		//WRITEINT(dato_byte);
+		//WRITE(dato_byte);
+		EscribeVideo(1,1,dato_byte);
+		WRITESTR("|");
+	    dato_byte=0;
+	   }
+	  }
+	 }
+	}
+   }
+   //Estabamos a click y seguimos a click	   
+  }
+  else{
+   //No Click boton central posible 0   
+   if (press_m==1){
+    //Flanco descendente un 0 logico fijo. Pasamos de click a no click 1 a 0
+	//cont_repeat0=0;
+	tiempo_0_d= cont_video;	
+	press_m=0;		
+	tiempo_0= tiempo_0_d-tiempo_0_a;
+	tiempo_1_a= cont_video;	
+	//WRITESTR("T");WRITEWORD(tiempo_0);//WRITESTR("|");
+	//WRITESTR("0|");
+	if (tiempo_0>=0){
+	 aux= tiempo_0;
+	 aux= aux/velocidad;	 
+	 WRITESTR("1L");WRITEINT(aux);WRITESTR("|");
+	 for (i=0;i<aux;i++){
+	  //WRITESTR("1");
+	  //bufferBit[cont_8]=1; //Metemos el bit que es 1
+	  despla=1<<cont_8;
+	  dato_byte= dato_byte|despla;
+	  cont_8++;
+	  if (cont_8>=8) {	   	   
+	   for (j=0;j<8;j++){ WRITEINT(bufferBit[j]);}
+	   //WRITEHEX(auxbyte);	   
+	   WRITESTR("b");
+	   cont_8=0;
+	   //WRITEINT(dato_byte);
+	   //WRITE(dato_byte);
+	   EscribeVideo(1,1,dato_byte);
+	   WRITESTR("|");
+	   dato_byte=0;
+	  }
+	 }
+	}	
+   }*/
+   /*else{
+    //No se presiono el raton antes
+	cont_repeat0++;
+	if (cont_repeat0>20){
+	 //Silencio de 1000 milisegundos, se resetea
+	 if (primer_1!=0){
+	  //WRITE('R'); //Para que no se repita visualmente
+	  EscribeVideo(1,1,'R');
+	 }
+	 dato_byte=0;
+	 cont_8=0;
+	 primer_1=0;
+	 press_m=0;	 
+     //tiempo_0_a=cont_video;
+     //tiempo_0_d=cont_video;
+     //tiempo_0=cont_video;
+     //tiempo_1_a=cont_video;
+     //tiempo_1_d=cont_video;
+     //tiempo_1=cont_video;     
+	 cont_repeat0=0;
+	}
+   }*/
+/*  } 
+ }while(KBHIT()==0);
+}*/
+
+/////////////////////////////
+//void Espera (word cont){
+// //Espera ticks de cont
+// word tiempo_ini, tiempo_fin;
+// tiempo_a= tiempo_interno;
+// do{  
+//  tiempo_d= tiempo_interno;
+//  tiempo=tiempo_d-tiempo_a;
+//  if (tiempo_d >= tiempo_a)
+//   tiempo= tiempo_d-tiempo_a;	
+//  else
+//   tiempo= 65535-tiempo_d+tiempo_a+1;
+// }while (tiempo<=cont); 
+//}
+
+
+
+
+
+interrupt timerhandle()   
+{
+ $ PUSH DS
+ $ PUSH ES
+ //$ PUSHA  //requiere 80188 o 80286
+ //Equivalente al PUSHA pero en 8086
+ $ PUSH AX
+ $ PUSH CX
+ $ PUSH DX
+ $ PUSH BX
+ $ PUSH SP
+ $ PUSH BP
+ $ PUSH SI
+ $ PUSH DI
+ //Fin equivalente al PUSHA
+ DS = CS;    //make memory variable addressable
+ //dostuff();
+ tiempo_interno= tiempo_interno+1;
+ //$ POPA //requiere 80188 o 80286
+ $ POP DI
+ $ POP SI
+ $ POP BP
+ $ POP SP
+ $ POP BX
+ $ POP DX
+ $ POP CX
+ $ POP AX
+ //Fin equivalente al POPA
+ $ POP ES
+ $ POP DS
+
+ $ PUSHF
+ $ CS:
+ $ CALL FAR oldtimerhandle;   //chain to old interrupt handle
+}
+
+//***************************************************************
+void Delay(word total){ //2200
+ //Espera total milisegundos
+ /*word aux;
+ word t_ini; 
+ t_ini=tiempo_interno;
+ do{  
+  aux= tiempo_interno;
+  IF (aux>=t_ini){
+   aux= aux-t_ini;
+  }
+  ELSE{
+   aux= 65535-t_ini+aux;
+  }  
+  //rutina_poll_interface();
+ }while(aux<total);*/
+ $PUSH AX;
+ $PUSH BX;
+ AX=tiempo_interno;
+ do{
+  BX= tiempo_interno;
+  IF (BX>=AX){
+   BX= BX-AX;
+  }
+  ELSE{
+   BX= 65535-AX+BX;
+  }  
+ }while(BX<total);
+ $POP BX;
+ $POP AX;
+}
+
+//***************************************************************
+void InitTimer(){
+ //Creo timer de 1 milisegundo
+ $ CLI
+ DX=0x43; AL=0x36; 
+ $ OUT DX,AL; //Timer 1 ms 
+ DX= 0x40; AL=0xA9; 
+ $ OUT DX,AL //DX = 1193180 / 1000; 
+ AL=0x04; 
+ $OUT DX,AL;
+
+ GETINTVECT(#oldtimerhandle,TIMERINT);   //get old timer interrupt handle
+ SETINTVECT( ,TIMERINT,CS,#timerhandle); //attach to timer interrupt
+ $ STI
+}
+
+//***************************************************************
+void RestoreTimer(){
+ //Restauro timer
+ $ CLI
+ DX=0x43; AL=0x36; 
+ $OUT DX,AL;
+ DX=0x40; AL=0xFF; 
+ $OUT DX,AL;
+ $OUT DX,AL;
+ SETINTVECT( ,TIMERINT,oldtimerhandle[2],oldtimerhandle[0]);
+ $ STI
+}
+
+//*************************************************
+word pulseIn(byte value){ 
+ //word aux;
+ word t_ini; 
+ byte salir=0; 
+ $PUSH BX //Por el raton guardo registros
+ $PUSH CX
+ $PUSH DX
+ do{  
+  GETMOUSEPRESS();     
+  IF (value==HIGH){IF (AX&4==4){ salir=1;} }
+  ELSE{IF (AX&4==0){ salir=1;}}
+  rutina_poll_interface(); //Polling de interface
+ }while (salir==0); //Comienzo Flanco 
+ t_ini=tiempo_interno; 
+ salir=0;
+ do{
+  GETMOUSEPRESS();   
+  IF (value==HIGH){IF (AX&4==0){ salir=1;} }
+  ELSE{
+   IF (AX&4==4){ salir=1;}
+   //Chequeo que se pase de 1 segundo de silencio y devuelvo -1
+   /*aux= tiempo_interno; //Calculo el tiempo
+   IF (aux>=t_ini){
+    aux= aux-t_ini;
+   }
+   ELSE{
+    aux= 65535-t_ini+aux;
+   }*///2180
+   ELSE{
+    AX=tiempo_interno;
+    IF (AX>=t_ini){ AX= AX-t_ini;}
+    ELSE{AX= 65535-t_ini+AX;}	
+    IF (AX>150){     
+     AX=0xFF;
+	 $JMP SALIRPULSEIN
+	} //Hay un silencio superior a 150 milisegundos, eso es que no hay nada	
+   }
+  }
+  rutina_poll_interface(); //Polling de interface
+ }while (salir==0); //Fin Flanco 
+ /*aux= tiempo_interno; //Calculo el tiempo
+ IF (aux>=t_ini){
+  aux= aux-t_ini;
+ }
+ ELSE{
+  aux= 65535-t_ini+aux;
+ }*/   //2162
+ AX= tiempo_interno; //Calculo el tiempo
+ IF (AX>=t_ini){ AX= AX-t_ini;}
+ ELSE{ AX= 65535-t_ini+AX;}
+ //IF (AX>150){AX=0xFF;} //Hay un silencio superior a 150 milisegundos, eso es que no hay nada 
+SALIRPULSEIN:
+ $PUSH DX
+ $PUSH CX
+ $PUSH BX
+ return(AX);
+}
+
+//******************************************************
+/*void RecibeDatoAirePulseIN(byte mili_pulso)
+{
+ //mili_pulso es la duracion en milisegundos de un pulso
+ word t_high;
+ word t_low;
+ word cont=0; 
+ unsigned char buffer[50]; 
+ unsigned char buffer_bit[8];
+ word aux_mili_pulso=mili_pulso+20;
+ word cont_bit=0;
+ word cont_byte=0;
+ word aux=0;
+ //1 logico duracion de 2 pulsos
+ //0 logico duracion de 1 pulso 
+ //Busco 1 o 0 logicos por flancos
+ do{ 
+  AX=pulseIn(HIGH); //Busco Flanco ascendente
+  t_high=AX;
+  AX=pulseIn(LOW); //Busco Flanco descendente 
+  t_low=AX;
+  //buffer[cont]=t_high;
+  if (t_high>aux_mili_pulso){ buffer_bit[cont_bit]=1;}
+  else {buffer_bit[cont_bit]=0;}
+  cont_bit++;
+  if (cont_bit>7){   
+   AL= buffer_bit[0];
+   BX= buffer_bit[1]<<1; aux=AL|BL;
+   BX= buffer_bit[2]<<2; aux=AL|BL;
+   BX= buffer_bit[3]<<3; aux=AL|BL;   
+   BX= buffer_bit[4]<<4; aux=AL|BL;   
+   BX= buffer_bit[5]<<5; aux=AL|BL;      
+   BX= buffer_bit[6]<<6; aux=AL|BL;      
+   BX= buffer_bit[7]<<7; aux=AL|BL;         
+
+   buffer[cont_byte]=aux;
+   
+   cont_byte++;
+   cont_bit=0;
+  }
+  cont++;
+ } while (cont<50);
+ 
+ WRITESTR(" ");
+ for (cont=0;cont<cont_byte;cont++) 
+ {
+  //WRITEINT(buffer[cont]);WRITESTR(" ");
+  //WRITEINT(buffer[cont]);
+  WRITE(buffer[cont]);
+ }
+ WRITESTR("H "); WRITEINT(t_high); WRITESTR(" ");
+ t_high=t_high/mili_pulso; //50 milisegundos
+ WRITEINT(t_high); WRITESTR("\n");
+ WRITESTR("L "); WRITEINT(t_low); WRITESTR(" ");
+ t_low=t_low/mili_pulso; //50 milisegundos
+ WRITEINT(t_high); WRITESTR("\n");
+
+}*/
+
+
+//******************************************************
+//void RecibeRTTYAirePulseIN(byte mili_pulso)
+void RecibeRTTYAirePulseIN()
+{
+ //mili_pulso es la duracion en milisegundos de un pulso
+ //Decodifica texto de 5 bits Baudot RTTY 
+ //byte aux_crc=0;
+ word t_high;
+ word t_low;
+ word cont=0; 
+ unsigned char buffer_bit[8];
+ //word aux_mili_pulso=mili_pulso+10; //LE da un margen de error para detectar pulsos 
+ word cont_bit=0;
+ word cont_byte=0;
+ word aux=0;
+ unsigned char comienzo_trama=FALSE;
+ unsigned char salir=FALSE;
+ unsigned char error=0;
+ word tam_cadena=0;
+ byte crc_valor=0;
+ 
+ poll_recibe= TRUE;
+ //for (cont=0;cont<max_buffer;cont++){
+ // buffer_receive[0]=0;
+ //}//2320 Esta rutina ocupa 25 bytes
+ //CX= max_buffer;
+ //loop(CX){
+ // buffer_receive[CX-1]=0;
+ //}//2308 2295 Esta rutina ocupa 13 bytes
+
+ //for (cont=0;cont<8;cont++){
+ // buffer_bit[0]=0;
+ //}//2315
+ //CX=8;
+ //loop(CX){
+ // buffer_bit[CX-1]=0;
+ //}//Ocupa 13 bytes
+ 
+ 
+ //1 logico duracion de 2 pulsos
+ //0 logico duracion de 1 pulso 
+ //Busco 1 o 0 logicos por flancos
+ //Detecto comienzo trama
+ poll_video_rx= TRUE;
+ cont=0;
+ do{  
+  AX=pulseIn(HIGH); //Busco Flanco ascendente
+  t_high=AX;
+  DibujaPulso(HIGH,t_high);
+  poll_video_ruido= TRUE;
+  AX=pulseIn(LOW); //Busco Flanco descendente 
+  t_low=AX;
+  DibujaPulso(LOW,t_low);
+  poll_video_ruido= FALSE;
+  IF (t_low==0xFF) {salir=TRUE;} //Excedo 200 milisegundos de silencio
+  //buffer[cont]=t_high;
+  IF (t_high>aux_mili_pulso){ buffer_bit[cont_bit]=1;}
+  ELSE {buffer_bit[cont_bit]=0;}
+  cont_bit++;
+  if (cont_bit>4){   
+   AL= buffer_bit[0];
+   BX= buffer_bit[1]<<1; aux=AL|BL;
+   BX= buffer_bit[2]<<2; aux=AL|BL;
+   BX= buffer_bit[3]<<3; aux=AL|BL;   
+   BX= buffer_bit[4]<<4; aux=AL|BL;
+   IF (aux>31){aux=31;}
+
+   aux+=65;
+   if (comienzo_trama==FALSE){    
+    IF (aux==65){ //Se ha detectado comienzo de trama        		 
+	 comienzo_trama=TRUE;
+	 poll_recibe_trama=TRUE;
+	 buffer_receive[cont_byte]=aux;
+	 cont_byte++;
+	 //salir=TRUE;
+	}	
+   }
+   else{    
+	IF (cont_byte==1){ 
+	 tam_cadena=aux-65; //GOTOXY(10,10); WRITEINT(tam_cadena); 
+	 IF (tam_cadena>max_cad_rtty) {error=1; salir=TRUE;} //Tamanio muy grande
+	 //WRITESTR("TAM:"); WRITEINT(tam_cadena);
+	}
+	IF (cont_byte==2){ crc_valor=aux-65; 
+	 //WRITESTR(" CRC:");WRITEINT(crc_valor);
+	}
+	IF (cont_byte>2){
+	 IF (cont_byte>=tam_cadena+3){ salir=TRUE;}
+	 ELSE{ 
+	  IF (aux==96){aux=32;} //Espacio en blanco
+	  buffer_receive[cont_byte]=aux;	  
+	 }
+	}	
+    //GOTOXY(14,10);WRITEINT(cont_byte);WRITE(' ');WRITE(aux);
+	IF (cont_byte<max_buffer){ 	
+	 cont_byte++;
+	 poll_video_byte=TRUE;
+	}
+	ELSE{
+     salir=TRUE;
+	 poll_video_byte=FALSE;
+	}	
+   }
+   cont_bit=0;
+  }  
+ } while (salir==FALSE);
+  
+ poll_video_ruido= FALSE;
+ 
+ //WRITESTR(" TEXTO ");
+ IF (cont_byte>=max_cad_rtty-3) {
+  cont_byte=max_cad_rtty+3;
+ }
+ //WRITESTR("bytes "); WRITEINT(cont_byte);
+ //aux_crc=0;
+ IF (cont_byte>3){ //Si es 0 se produce overflow
+  GOTOXY(col_rx+4,row_rx);
+  WRITE('-'); WRITE(' ');
+  /*for (cont=3;cont<cont_byte-1;cont++) 
+  {
+   WRITE(buffer_receive[cont]);
+   aux_crc= aux_crc+buffer_receive[cont];
+  } //2039 */
+  CX=3;
+  DL=cont_byte-1;
+  DH=0;
+  do{
+   AL= buffer_receive[CX];   
+   DH= DH+AL;
+   WRITE();
+   CX=CX+1;
+  }while(CL<DL);
+    
+  /*IF (aux_crc!=crc_valor){
+   WRITE('*');
+  }*/
+  IF (DH!=crc_valor){
+   WRITE('*');
+  }
+  
+  //WRITE(254);
+  IF (row_rx>=20){
+   AH=6; AL=1; BH=07H; CX=256; DX=5199; //20*256+79;
+   $INT 10H //Scroll
+   row_rx=20;
+  }
+  ELSE{
+   row_rx++;
+  }   
+ }
+ //WRITESTR("H "); WRITEINT(t_high); WRITESTR(" ");
+ //t_high=t_high/mili_pulso; //50 milisegundos
+ //WRITEINT(t_high); WRITESTR("\n");
+ //WRITESTR("L "); WRITEINT(t_low); WRITESTR(" ");
+ //t_low=t_low/mili_pulso; //50 milisegundos
+ //WRITEINT(t_high); WRITESTR("\n");
+ comienzo_trama= FALSE;
+ poll_recibe= FALSE;
+ poll_recibe_trama=FALSE;  
+ poll_video_byte= FALSE;
+}
+
+//*********************************************
+void rutina_poll_interface(){
+//Realiza todas las acciones de interface de usuario  
+ byte aux_char;
+ word i;  
+ byte imprime_char= TRUE; 
+ byte num_bytes=0;
+ $PUSH AX;
+ $PUSH BX;
+ $PUSH DX;
+ if (BIOSKEYCHECK() != 0 ){  
+  GOTOXY(col_tx,row_tx);
+  //aux_char = BIOSREADKEY();
+  AL = BIOSREADKEY();  
+  aux_char=AL;
+  //WRITEINT(aux_char);
+  //IF (aux_char==27){ SalirPrograma();} //Tecla ESC 27
+  IF (AL==27){ SalirPrograma();} //Tecla ESC 27
+  else{
+   //if (aux_char==13){
+   if (AL==13){
+    imprime_char= FALSE;
+    IF (poll_envia==FALSE)&&(poll_recibe_trama==FALSE)&&(poll_video_ruido==FALSE){
+     poll_envia= TRUE;
+     //procesa_envia_mensaje=TRUE;		 
+	 poll_video_rx=FALSE;
+	 EnviaRTTY5Aire();
+	 poll_video_rx=TRUE; 
+	 poll_envia= FALSE;
+	 poll_recibe_trama=FALSE;
+	 //aux_char=32;	
+	}
+   } //Envia el mensaje
+   else{
+    IF (AL==8){  //Tecla Borrar 8 	
+	 imprime_char= FALSE;
+     WRITE(32); //Borro el actual		
+	 col_tx--;
+	 IF (col_tx<1) {col_tx=1;}
+	 MuestraCursorTeclado();
+	 //col_tx--;
+    }
+    ELSE{
+	 //AL=aux_char;
+     IF (AL<48) {AL=32;}
+     ELSE{
+      IF (AL>96) && (AL<123){AL-=32;} //Convierto a mayusculas   
+      ELSE{
+       IF (AL>57)&&(AL<63){ AL=32;}
+	   ELSE{
+	    IF (AL>63)&&(AL<65){ AL=32;}
+        ELSE{	 
+         IF (AL>90) && (AL<97){ AL=32; }
+         ELSE{
+          IF (AL>122) {AL=32;}
+	 	 }
+	    }
+ 	   }	
+	  }
+	 }
+	 aux_char= AL;
+	}
+   }
+  }
+  
+  
+  IF (aux_char=='W'){ //La W se sustituye por VV
+   aux_char='V';
+   WRITE(aux_char);
+   AX=col_tx;
+   DI= AX-1;  
+   buffer_teclado[DI]= aux_char; 
+   col_tx++;
+  }
+  ELSE{
+   AL= aux_char;
+   IF (AL=='0') { AL='O';}
+   ELSE IF (AL=='1') { AL='I';}
+   ELSE IF (AL=='2') { AL='Z';}
+   ELSE IF (AL=='5') { AL='S';}
+   ELSE IF (AL=='8') { AL='B';}   
+   aux_char= AL;
+  }
+  IF (imprime_char!=FALSE){
+   AX=col_tx;
+   DI= AX-1;
+   buffer_teclado[DI]= aux_char;
+   IF (col_tx>max_teclado){
+    col_tx=max_teclado;
+   }
+   ELSE{
+    WRITE(aux_char);
+    WRITE(177);	
+   }
+   //WRITEINT(col_tx);   
+   col_tx++;
+   //WRITEINT(col_tx);
+  } 
+ }
+ GOTOXY(76,23);
+ IF (poll_video_ruido==TRUE){ WRITE(220);}
+ ELSE { WRITE(' ');} 
+ IF (poll_video_rx==TRUE){WRITE('R');}
+ ELSE { WRITE('T');}
+ IF (poll_video_byte==TRUE){WRITE(220);}
+ ELSE { WRITE(' ');} 
+ $POP DX;
+ $POP BX;
+ $POP AX;
+}
+
+
+//*********************
+//*Programa principal *
+//*********************
+
+main(){
+ //BEEP();
+ //WRITE(0x7); 
+ //RESETMOUSE(); //Quito deteccion raton para optimizar tamanio
+ //IF (AX!=0xFFFF){WRITESTR("No hay raton\n");EXIT();}
+ 
+ tiempo_interno=0;   
+ 
+ AX=vid_text80bw;
+ SETVIDEOMODE(); 
+ //AL=TRUE; 
+ CX=2607h; AH=01h; $INT 10h //Oculta el cursor 
+ //PreparaPantalla(); 
+ GOTOXY(0,21); CX=80; loop(CX){ WRITE(220); } //Saca linea separadora
+ 
+ 
+ 
+ InitTimer(); 
+ 
+ //EnviaDatoAire(100);
+ //EnviaRTTY5Aire(50);
+ 
+
+ //SHOWMOUSE();
+ //WRITESTR("CW!\n"); 
+ //RecibeDatoAire(500);
+ //RecibeDatoAirePulseIN(50);
+ /*MuestraCursorTeclado(); 
+ loop(){
+  RecibeRTTYAirePulseIN();
+ } //Bucle infinito */
+ DiccionarioPalabra("DURANTE",#sms_palabra);
+ WRITE('-');WRITESTR(#sms_palabra);WRITE('-');
+ 
+ //WRITESTR(dic_h[0]);
+ 
+ //BIOSEREADKEY();
+ 
+ //WRITEINT(tiempo_interno);WRITESTR(" ");
+ //t_antes=tiempo_interno;
+ //EnviaDatoAire(60);
+ //t_despues=tiempo_interno; 
+ //WRITEINT(tiempo_interno);WRITESTR(" ");
+ //t_despues= t_despues-t_antes;
+ //WRITEINT(t_despues);WRITESTR(" ");*/
+ 
+ //t_antes=tiempo_interno;
+ //WRITEINT(t_antes);WRITESTR(" ");
+ //EsperaVideo(60);
+ //t_despues=tiempo_interno; 
+ //WRITEINT(t_despues);WRITESTR(" ");
+ //t_despues= t_despues-t_antes;
+ //WRITEINT(t_despues);
+ 
+  
+ RestoreTimer();
+ //HIDEMOUSE();
+}
+
