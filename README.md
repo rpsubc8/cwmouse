@@ -10,4 +10,4 @@ The characters are packaged in 5 bits (32 possibilities), as well as a dictionar
 Pequeño programa para DOS 8086, compatible con CMD Windows o emulador DOSBOX, que permite enviar y recibir mensajes de texto via CW (morse) audio.
 La transmisión se realiza con pulsos cuadrados de sonido (800 Hz) del altavoz interno (tarjeta de sonido emulada DOSBOX).
 La recepcion se realiza con un pequeño interface de transistor y condensador, que activan el boton derecho de raton.
-Se empaquetan los caracteres en 5 bits  (32 posibilidades), asi como un diccionario de palabras más usadas, para reducir el tamño, y por tanto reducir el tiempo para enviar un mensaje.
+Se empaquetan los caracteres en 5 bits  (32 posibilidades), asi como un diccionario de palabras más usadas, para reducir el tamaño, y por tanto reducir el tiempo para enviar un mensaje.
